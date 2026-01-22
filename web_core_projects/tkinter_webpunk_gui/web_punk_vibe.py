@@ -2,6 +2,7 @@ import tkinter as tk
 from PIL import Image, ImageTk, ImageSequence
 import random
 import os
+import webbrowser
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 img_dir = os.path.join(BASE_DIR, "img")
@@ -86,6 +87,15 @@ class NeonTextObject(WebPunkObject):
         self.canvas.itemconfig(self.id, fill=random.choice(self.colors))
 
 
+class ButtonObject(WebPunkObject):
+    def __init__(self, canvas, screen_width,screen_height, text, x, y,command,url):
+        super().__init__(canvas,screen_width,screen_height)
+        self.button = tk.Button(canvas,text=text,command=command)
+        self.window = canvas.create_window(x,y,anchor="nw",window=self.button)
+        self.url = url
+    def on_click(self,url):
+        webbrowser.open(url)
+
 class WebPunkApp:
     def __init__(self, root):
         self.root = root
@@ -94,8 +104,6 @@ class WebPunkApp:
         self.height = 600
         self.canvas = tk.Canvas(root, width=self.width, height=self.height, highlightthickness=0)
         self.canvas.pack()
-
-
         try:
             path = os.path.join(img_dir, "back.jpg")
             img = Image.open(path).resize((self.width, self.height))
@@ -103,16 +111,15 @@ class WebPunkApp:
 
             # Рисуем на холсте (0,0 - левый верхний угол)
             self.canvas.create_image(0, 0, image=self.bg_img, anchor="nw")
+
         except Exception as e:
             print(f"Фон не найден: {e}")
-            self.canvas.config(bg="#008080")  # Цвет Win95 если картинки нет
-
+            self.canvas.config(bg="#008080")
 
         # 2. Список для ВСЕХ объектов (полиморфизм)
         self.objects = []
 
         # 3. СОЗДАНИЕ ОБЪЕКТОВ
-        # Здесь ТЫ задаешь параметры (символы, цвета, координаты)
 
         # Создаем капли (Слой 1)
         matrix_symbols = "ｦｱｳｴｵ123456789010101010101010110101010110101010110"
@@ -122,15 +129,24 @@ class WebPunkApp:
             self.objects.append(drop)
 
         # Добавляем гифку (Слой 2)
+        gifts_images = [
+            GifObject(self.canvas, self.width, self.height, 'saveplanet.gif', 350, 400),
+            GifObject(self.canvas, self.width, self.height, 'win95.gif', 0, 0),
+            GifObject(self.canvas, self.width, self.height, 'smp.gif', 400, 0),
 
-        self.objects.append(GifObject(self.canvas, self.width, self.height, 'load.gif', 150, 300))
-        self.objects.append(GifObject(self.canvas, self.width, self.height, 'win95.gif', 0, 0))
-        self.objects.append(GifObject(self.canvas, self.width, self.height, 'smp.gif', 300, -150))
+        ]
+        for i in gifts_images:
+            self.objects.append(i)
 
         # Добавляем неоновый текст с ТВОИМИ цветами (Слой 3)
         my_colors = ["#FF00FF", "#00FFFF", "#FFFFFF"]
         self.objects.append(NeonTextObject(self.canvas, self.width, self.height, "SYSTEM ERROR", 400, 200, my_colors))
 
+        #кнопка
+        url = 'https://www.youtube.com/watch?v=tMgkt9jdjTU&list=RDtMgkt9jdjTU&start_radio=1'
+        on_click_func = lambda : btn.on_click(url)
+        btn = ButtonObject(self.canvas,self.width,self.height,'click me!',self.width//2,self.height//2,command=on_click_func,url = None)
+        self.objects.append(btn)
         # 4. Запуск цикла
         self.run()
 
