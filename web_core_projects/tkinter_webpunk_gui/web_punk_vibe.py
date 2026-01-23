@@ -8,9 +8,11 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 img_dir = os.path.join(BASE_DIR, "img")
 
 
+class WebScreenObject:
+    '''Этот класс — база, которая хранит ссылку на холст и границы экрана,
+    чтобы все дочерние объекты автоматически знали,
+    где им рисовать'''
 
-
-class WebPunkObject:
     def __init__(self,canvas,screen_width,screen_height):
         self.canvas = canvas
         self.screen_width = screen_width
@@ -18,7 +20,8 @@ class WebPunkObject:
     def update(self):
         pass
 
-class MatrixDropObject(WebPunkObject):
+class MatrixDropObject(WebScreenObject):
+    ''''Класс отдельного символа «матричного дождя», который умеет двигаться вниз и обновляться.'''
     def __init__(self,canvas,screen_width,screen_height,font_size,x,chars,color):
         super().__init__(canvas,screen_width,screen_height)
         self.font_size = font_size
@@ -44,13 +47,11 @@ class MatrixDropObject(WebPunkObject):
         self.canvas.itemconfig(self.char_obj_id, text=random.choice(self.chars))
 
 
-class GifObject(WebPunkObject):
-    def __init__(self, canvas, screen_width, screen_height, file_name, x, y):
+class GifObject(WebScreenObject):
+    def __init__(self, canvas, screen_width,screen_height,file_name, x, y):
         super().__init__(canvas, screen_width, screen_height)
-
         # 1. Путь к файлу
         file_path = os.path.join(img_dir, file_name)
-
         try:
             # 2. Загрузка кадров прямо в объект
             pil_img = Image.open(file_path)
@@ -76,9 +77,9 @@ class GifObject(WebPunkObject):
         # 2. Обновляем картинку на холсте по ID
         self.canvas.itemconfig(self.id, image=self.frames[self.current_frame])
 
-class NeonTextObject(WebPunkObject):
-    def __init__(self, canvas, width, height, text, x, y, palette): # palette - это вход
-        super().__init__(canvas, width, height)
+class NeonTextObject(WebScreenObject):
+    def __init__(self, canvas,screen_width,screen_height,text, x, y, palette): # palette - это вход
+        super().__init__(canvas, screen_width, screen_height)
         self.colors = palette  # Сохранили то, что нам дали
         self.id = self.canvas.create_text(x, y, text=text, fill=self.colors[0], font=("Fixedsys", 40))
 
@@ -87,12 +88,20 @@ class NeonTextObject(WebPunkObject):
         self.canvas.itemconfig(self.id, fill=random.choice(self.colors))
 
 
-class ButtonObject(WebPunkObject):
+class ButtonObject(WebScreenObject):
     def __init__(self, canvas, screen_width,screen_height, text, x, y,command,url):
         super().__init__(canvas,screen_width,screen_height)
-        self.button = tk.Button(canvas,text=text,command=command)
+        self.button = tk.Button(canvas,text=text,
+                                command=command,
+                                bg="#222222",
+                                fg="#00ffcc",
+                                activebackground="#00ffcc",
+                                activeforeground="#000000",
+                                highlightthickness=2,
+                                highlightbackground="#00ffcc",font="Fixedsys", padx = 50,pady = 20 )
         self.window = canvas.create_window(x,y,anchor="nw",window=self.button)
         self.url = url
+
     def on_click(self,url):
         webbrowser.open(url)
 
@@ -130,22 +139,22 @@ class WebPunkApp:
 
         # Добавляем гифку (Слой 2)
         gifts_images = [
-            GifObject(self.canvas, self.width, self.height, 'saveplanet.gif', 350, 400),
-            GifObject(self.canvas, self.width, self.height, 'win95.gif', 0, 0),
-            GifObject(self.canvas, self.width, self.height, 'smp.gif', 400, 0),
-
+            GifObject(self.canvas, self.width, self.height, 'noclothes.gif', 50, 370),
+            GifObject(self.canvas, self.width, self.height, 'saveplanet.gif', 350, 450),
+            GifObject(self.canvas, self.width, self.height, 'win95.gif', 0, -50),
+            GifObject(self.canvas, self.width, self.height, 'smp.gif', 360, -120),
         ]
         for i in gifts_images:
             self.objects.append(i)
 
-        # Добавляем неоновый текст с ТВОИМИ цветами (Слой 3)
-        my_colors = ["#FF00FF", "#00FFFF", "#FFFFFF"]
-        self.objects.append(NeonTextObject(self.canvas, self.width, self.height, "SYSTEM ERROR", 400, 200, my_colors))
+        #  неоновый текст
+        my_colors = ["#FF00FF", "#00FFFF", "#FFFFFF",'#FF6EC7','#39FF14']
+        self.objects.append(NeonTextObject(self.canvas, self.width, self.height, "SYSTEM ERROR", 400, 20, my_colors))
 
         #кнопка
         url = 'https://www.youtube.com/watch?v=tMgkt9jdjTU&list=RDtMgkt9jdjTU&start_radio=1'
         on_click_func = lambda : btn.on_click(url)
-        btn = ButtonObject(self.canvas,self.width,self.height,'click me!',self.width//2,self.height//2,command=on_click_func,url = None)
+        btn = ButtonObject(self.canvas,self.width,self.height,'click me!',300,self.height//2,command=on_click_func,url = None)
         self.objects.append(btn)
         # 4. Запуск цикла
         self.run()
